@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, BookOpen, LayoutDashboard, LogOut, Mic2, Settings2, SlidersHorizontal, UsersRound } from "lucide-react";
+import { Activity, BookOpen, KeyRound, LayoutDashboard, LogOut, Mic2, Settings2, SlidersHorizontal, UsersRound } from "lucide-react";
 import type { Role } from "@/types";
 
 const items = [
@@ -13,6 +13,7 @@ const items = [
   { href: "/admin/voice-setting", label: "语音助手", icon: Mic2 },
   { href: "/admin/user-management", label: "用户权限", icon: UsersRound, admin: true },
   { href: "/admin/system-log", label: "状态日志", icon: BookOpen },
+  { href: "/admin/account", label: "账户安全", icon: KeyRound },
 ];
 
 function csrf() {
@@ -38,7 +39,7 @@ export function AdminShell({ children, username, role }: { children: React.React
         </aside>
         <section className="admin-glass min-h-[calc(100dvh-1.5rem)] min-w-0 overflow-hidden rounded-[1.75rem] p-4 sm:p-5 lg:min-h-[calc(100dvh-2.5rem)] lg:p-6 xl:min-h-[calc(100dvh-3rem)] xl:p-8">{children}</section>
       </div>
-      <nav className="fixed inset-x-3 bottom-3 z-40 flex justify-around rounded-2xl border border-white/10 bg-[#15181e]/90 p-2 backdrop-blur-2xl lg:hidden">{items.filter((item) => !item.admin || role === "admin").slice(0, 5).map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`flex min-w-14 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] no-underline ${path === href ? "bg-white text-black" : "text-white/55"}`}><Icon size={17} />{label}</Link>)}</nav>
+      <nav className="fixed inset-x-3 bottom-3 z-40 flex justify-between gap-1 overflow-x-auto rounded-2xl border border-white/10 bg-[#15181e]/90 p-2 backdrop-blur-2xl lg:hidden">{items.filter((item) => !item.admin || role === "admin").map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`flex min-w-14 shrink-0 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] no-underline ${path === href ? "bg-white text-black" : "text-white/55"}`}><Icon size={17} />{label}</Link>)}</nav>
     </main>
   );
 }

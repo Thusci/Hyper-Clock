@@ -75,6 +75,8 @@ HA_TOKEN=粘贴_HA_长期访问令牌
 SESSION_SECRET=粘贴第一条随机密钥
 BOOTSTRAP_ADMIN_USERNAME=admin
 BOOTSTRAP_ADMIN_PASSWORD=首次登录密码
+# password：账号 + 密码；totp：账号 + 身份验证器验证码（密码只在首次绑定时使用一次）
+AUTH_METHOD=password
 ALLOW_WAN=false
 TRUST_PROXY_HEADERS=true
 COOKIE_SECURE=false
@@ -112,7 +114,13 @@ sudo ln -sfn /etc/hyper-clock/back-stage.env /opt/hyper-clock/back-stage/.env
 sudo ln -sfn /etc/hyper-clock/watch-face.env /opt/hyper-clock/watch-face/.env
 ```
 
-`BOOTSTRAP_ADMIN_*` 只在用户库为空时创建首个管理员。首次登录后应在用户管理页建立正式账号，并从环境文件移除引导密码。
+`BOOTSTRAP_ADMIN_*` 设置期间，该账号始终存在，且 `BOOTSTRAP_ADMIN_PASSWORD` 就是它的密码（修改环境文件并重启 back-stage 即生效）。在用户管理页建立正式账号后，从环境文件删除这两行，账号即改由界面管理（保留最后一次的密码）。
+
+`AUTH_METHOD=totp` 时：首次登录点“还没有绑定身份验证器？”，输入账号密码后扫描二维码并输入验证码完成绑定；之后只用账号 + 验证码登录。已登录用户可在“账户安全”页凭当前验证码重新生成。忘记密码或丢失手机：
+
+```bash
+sudo scripts/launch.sh --reset-user admin   # 生成新密码、清除身份验证器、强制下线；账号不存在时创建为管理员
+```
 
 > 完成第 2、3 节后，第 4–7 节可以用脚本完成：`sudo scripts/deploy.sh` 负责同步、构建并安装 systemd 单元与 Nginx 站点，`sudo scripts/launch.sh` 负责依次启动并做健康检查（首次启用 Kiosk 时加 `--takeover-display`）；`sudo scripts/launch-production.sh` 依次执行两者。下面是脚本执行的等价手动步骤。
 

@@ -11,6 +11,7 @@
 #   sudo scripts/launch.sh --no-kiosk          # services only, leave the local screen alone
 #   sudo scripts/launch.sh --check             # health checks only, change nothing
 #   sudo scripts/launch.sh --stop              # stop the kiosk and both services
+#   sudo scripts/launch.sh --reset-user admin  # new password, authenticator cleared, signed out
 #   scripts/launch.sh --docker                 # docker compose up -d
 #
 set -euo pipefail
@@ -22,6 +23,7 @@ WITH_KIOSK=1
 TAKEOVER_DISPLAY=0
 CHECK_ONLY=0
 STOP=0
+RESET_USER=""
 
 usage() {
   usage_header "$0"
@@ -32,6 +34,8 @@ Options:
   --takeover-display   Allow disabling gdm3 so the kiosk can own tty1
   --check              Run preflight and health checks only, change nothing
   --stop               Stop the kiosk, watch-face and back-stage (Nginx keeps running)
+  --reset-user NAME    Give NAME a new password, clear its authenticator and sign it out
+                       (creates NAME as an admin when it does not exist; nothing else is started)
   -h, --help           Show this help
 Environment overrides: APP_DIR, ENV_DIR, RUN_USER
 EOF
@@ -44,6 +48,7 @@ while [[ $# -gt 0 ]]; do
     --takeover-display) TAKEOVER_DISPLAY=1 ;;
     --check) CHECK_ONLY=1 ;;
     --stop) STOP=1 ;;
+    --reset-user) [[ $# -ge 2 && "$2" != -* ]] || { echo "--reset-user needs a username" >&2; exit 64; }; RESET_USER="$2"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 64 ;;
   esac
@@ -141,6 +146,28 @@ stop_all() {
   info "Nginx keeps running; the services stay enabled and start again on boot."
 }
 
+# Rewrites runtime-users.json, so back-stage is stopped meanwhile (its writes are serialised only in-process).
+reset_user() {
+  local name="$1" back="$ENV_DIR/back-stage.env" unit=hyper-clock-back-stage.service was_active=0 extra=()
+  step "Reset account $name"
+  require_root_and_app_dir
+  [[ "$name" =~ ^[a-zA-Z0-9_-]{1,80}$ ]] || fail "Invalid username '$name' (letters, digits, _ and - only)"
+  [[ -f "$APP_DIR/back-stage/scripts/reset-user.mjs" ]] || fail "reset-user.mjs is missing in $APP_DIR; $DEPLOY_HINT"
+  if [[ "$(env_value "$back" BOOTSTRAP_ADMIN_USERNAME)" == "$name" && -n "$(env_value "$back" BOOTSTRAP_ADMIN_PASSWORD)" ]]; then
+    extra=(--keep-password)
+  fi
+  systemctl is-active --quiet "$unit" && was_active=1
+  (( was_active )) && systemctl stop "$unit"
+  (cd "$APP_DIR/back-stage" && as_user env HYPER_CLOCK_DATA_DIR="$APP_DIR/back-stage/data" node scripts/reset-user.mjs "$name" "${extra[@]}") \
+    || { (( was_active )) && systemctl start "$unit"; fail "Reset failed"; }
+  (( was_active )) && start_unit "$unit" back-stage "http://127.0.0.1:3001/api/health"
+  if [[ "$(env_value "$back" AUTH_METHOD | tr '[:upper:]' '[:lower:]')" == totp ]]; then
+    info "AUTH_METHOD=totp: on the login page enter $name, choose 还没有绑定身份验证器？, then the password above (or the env one) to bind a new authenticator."
+  else
+    info "AUTH_METHOD=password: sign in as $name with the password above, then change it under 用户权限."
+  fi
+}
+
 health_report() {
   step "Status"
   local unit
@@ -184,6 +211,7 @@ launch_docker() {
 # ── main ────────────────────────────────────────────────────────────────────
 printf '%sHyper Clock · launch (%s)%s\n' "$BOLD" "$MODE" "$RESET"
 if [[ "$MODE" == docker ]]; then launch_docker; exit 0; fi
+if [[ -n "$RESET_USER" ]]; then reset_user "$RESET_USER"; exit 0; fi
 if (( STOP )); then require_root_and_app_dir; stop_all; exit 0; fi
 if (( CHECK_ONLY )); then check_only; exit 0; fi
 

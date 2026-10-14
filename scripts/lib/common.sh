@@ -84,7 +84,13 @@ check_secrets() {
   # The value shipped with the original repository is sha256("a") repeated — publicly guessable.
   [[ "$session" != ca978112ca1bbdcafac231b39a23dc4d* && "$kiosk" != ca978112ca1bbdcafac231b39a23dc4d* ]] || fail "Secrets are the known sample value; regenerate them with openssl rand -hex 32"
   ok "Secrets present, long enough, distinct and matching between services"
-  [[ -n "$(env_value "$back" BOOTSTRAP_ADMIN_PASSWORD)" ]] && warn "BOOTSTRAP_ADMIN_PASSWORD is still set; remove it after creating the real admin account"
+  [[ -n "$(env_value "$back" BOOTSTRAP_ADMIN_PASSWORD)" ]] && warn "BOOTSTRAP_ADMIN_PASSWORD is set, so it is $(env_value "$back" BOOTSTRAP_ADMIN_USERNAME)'s password; remove it to manage that account in the UI"
+  local method
+  method="$(env_value "$back" AUTH_METHOD | tr '[:upper:]' '[:lower:]')"
+  case "${method:-password}" in
+    password|totp) ok "Sign-in method: ${method:-password}" ;;
+    *) warn "AUTH_METHOD='$method' is not password or totp; back-stage falls back to password" ;;
+  esac
   return 0
 }
 

@@ -14,6 +14,8 @@ const schema = z.object({
   KIOSK_SHARED_SECRET: z.string().optional(),
   BOOTSTRAP_ADMIN_USERNAME: z.string().optional(),
   BOOTSTRAP_ADMIN_PASSWORD: z.string().optional(),
+  /** "password": username + password. "totp": username + authenticator code; the password is only used to enrol. */
+  AUTH_METHOD: z.string().optional().transform((value) => (value?.trim().toLowerCase() === "totp" ? "totp" : "password") as "password" | "totp"),
   ALLOW_WAN: flag,
   TRUST_PROXY_HEADERS: flag,
   COOKIE_SECURE: flag,

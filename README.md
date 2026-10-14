@@ -292,6 +292,7 @@ sudo scripts/launch.sh --takeover-display   # 首次启用 Kiosk：停用 gdm3�
 sudo scripts/launch.sh --no-kiosk           # 只启动服务，不动本机屏幕
 sudo scripts/launch.sh --check              # 只做健康检查
 sudo scripts/launch.sh --stop               # 停止 Kiosk 与两个服务
+sudo scripts/launch.sh --reset-user admin   # 重置账号：新密码、清除身份验证器、强制下线
 
 sudo scripts/launch-production.sh           # 一次完成上面两步（两边的参数都接受）
 scripts/deploy.sh --docker && scripts/launch.sh --docker   # 改用 docker compose
