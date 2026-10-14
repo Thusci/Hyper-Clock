@@ -2,17 +2,40 @@
 **/.next/
 **/*.tsbuildinfo
 
+# Env files hold the HA token and session/kiosk secrets. Only the examples are tracked.
 .env
+.env.*
+*.env
+.env copy
 **/.env
-**/.env.local
+**/.env.*
+**/*.env
+**/.env copy
 !.env.example
 !**/.env.example
 
 back-stage/data/runtime-*.json
 back-stage/data/audit.ndjson
+back-stage/data.backup-*/
 watch-face/data/runtime-config.json
+home-assistant/
+
+# Python sidecar
+**/.venv/
+**/__pycache__/
+**/*.egg-info/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.test-tmp*/
+**/pytest-cache-files-*/
 
 npm-debug.log*
 *.log
 .DS_Store
 Thumbs.db
+
+# AI-assistant files (CLAUDE.md imports AGENTS.md, which `next dev` regenerates)
+**/CLAUDE.md
+**/AGENTS.md
+**/.claude/
+docs/private/

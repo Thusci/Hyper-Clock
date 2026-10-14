@@ -1,4 +1,4 @@
-# Hyper Clock Watch Face
+# Hyper Clock · watch-face
 
 Q775 本机 Chromium Kiosk 专用表盘。该目录只负责显示和物理功能键交互，不包含管理后台、用户系统或 HA Token。
 
@@ -8,7 +8,7 @@ Q775 本机 Chromium Kiosk 专用表盘。该目录只负责显示和物理功�
 - 主页面右侧常驻天气、日期/日历、课程、设备和媒体卡片；简报、备忘与缓存提示在动态卡片中轮播。
 - 第二屏使用 HA `weather.get_forecasts` 展示实时指标、逐小时预报、未来一周与日出日落；已原生适配 HACS 和风天气（QWeather API v7）的 `weather.he_feng_tian_qi` 与 `sensor.he_feng_tian_qi_*` 实体，包括温湿度、体感、风、气压、能见度、紫外线、AQI、PM2.5/PM10、O₃ 等。第三屏按 HA 区域自动组织全部 Registry 设备，并可切换查看 HA 原生集成目录，无需逐台填写实体。
 - 原生集成目录聚合 HA 配置项、设备/实体注册表与服务动作，因此无硬件设备的版本、时间日期、工作日、季节、TTS、Radio Browser、购物清单等集成也不会被漏掉。
-- 当 HA 提供 `sensor.realme_gt7_pro_battery_level`、`sensor.thusci_ipad_battery` 及其充电、充电器或 `device_tracker` 配套实体时，设备页会把 Realme GT7 Pro 与 iPad 提升到个人设备轨道，首页设备卡也会同步显示；无有效电量数据时自动回退为全屋设备摘要。
+- HA Companion App（`mobile_app`）设备会被提升到个人设备轨道：电量取 `*_battery_level`，充电状态取 `*_battery_state` / `*_is_charging`，App 离线时回退到 `device_tracker` 的电量属性；首页设备卡同步显示，无有效电量数据时回退为全屋设备摘要。
 - 优先使用 HA `sun.sun` 的日出/日落状态切换晨光、白昼、暮色和夜间主题，离线时按配置时区自动兜底。
 - 设备开关和背光操作先发送到本目录的 `/api/control` BFF，再携带服务端共享密钥转发到 `back-stage`；密钥不会进入浏览器。
 - 控制面暂时离线时使用 `data/default-config.json` 启动，本地时钟继续运行。
@@ -50,13 +50,13 @@ Q775 本机 Chromium Kiosk 专用表盘。该目录只负责显示和物理功�
 
 ## 运行
 
-复制 `.env.example` 为 `.env`，设置控制面地址与共享密钥，然后使用 Node.js 24 LTS+：
+开发：复制 `.env.example` 为 `.env`，设置控制面地址与共享密钥，然后使用 Node.js 24 LTS：
 
 ```bash
 npm install
-npm run dev
+npm run dev        # http://127.0.0.1:3000，需要 back-stage 同时运行在 3001
 ```
 
-生产环境建议从根目录 `docker compose up -d --build` 启动三模块与统一网关。
+生产：在 Q775 上用仓库根目录的 `sudo scripts/deploy.sh && sudo scripts/launch.sh`（原生 systemd，推荐），详见 [`docs/linux-deployment.md`](../docs/linux-deployment.md)；也可以用 `docker compose up -d --build`。
 
-无需 Docker 的 Q775 原生部署请按 [`docs/linux-deployment.md`](../docs/linux-deployment.md) 操作。
+`next build` 以仓库根目录为追踪根，独立服务器输出在 `.next/standalone/watch-face/server.js`，`npm start`（`scripts/start.mjs`）会自动定位并复制静态资源。

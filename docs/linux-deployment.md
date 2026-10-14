@@ -229,22 +229,14 @@ sudo bash scripts/install-ubuntu.sh
 
 ## 9. 更新与回滚
 
-更新前备份后台运行数据和环境文件：
+把新版代码放到源码目录（例如 `git pull`）后：
 
 ```bash
-sudo systemctl stop hyper-clock-watch-face hyper-clock-back-stage
-sudo cp -a /opt/hyper-clock/back-stage/data /opt/hyper-clock/back-stage/data.backup
-sudo cp -a /etc/hyper-clock /etc/hyper-clock.backup
+sudo scripts/deploy.sh    # 自动备份 back-stage/data（保留最近 5 份）、同步、只重建有变化的模块
+sudo scripts/launch.sh    # 重启服务并做健康检查
 ```
 
-同步新版代码后，重复“安装依赖并构建”，再启动服务：
-
-```bash
-sudo systemctl start hyper-clock-back-stage hyper-clock-watch-face
-sudo systemctl restart hyper-clock-kiosk
-```
-
-若更新失败，将代码恢复到上一版本并还原 `data.backup`；不要删除 HA Token 或用户数据后直接重建。
+备份位于 `/opt/hyper-clock/back-stage/data.backup-<时间>/`。回滚时：把代码恢复到上一版本并重新部署；如需恢复数据，先 `sudo scripts/launch.sh --stop`，再把备份目录中的文件复制回 `back-stage/data/`。修改环境文件前另行备份 `/etc/hyper-clock`。不要删除 HA Token 或用户数据后直接重建。
 
 ## 10. 日志与故障定位
 
@@ -256,6 +248,8 @@ curl http://127.0.0.1:8123/api/ -H "Authorization: Bearer HA_TOKEN"
 
 - 后台显示 HA 离线：检查 `HA_URL`、令牌和 8123 监听地址。
 - 表盘显示连接失败：检查 8080 的 `/api/public/stream` 是否由 Nginx 转发到 3001。
-- 后台无法登录：检查 `SESSION_SECRET` 长度、系统时间和 `runtime-users.json` 权限。
+- 登录返回 `CSRF check failed`：确认 Nginx 使用 `proxy_set_header Host $http_host;`，且 `/back-stage-assets/` 被转发到 3001（登录页的脚本加载失败时，表单会退化为不带 CSRF 头的普通提交）。可在浏览器开发者工具 Network 面板查看是否有 404。
+- 后台无法登录：检查 `SESSION_SECRET` 长度、系统时间和 `runtime-users.json` 权限；`BOOTSTRAP_ADMIN_PASSWORD` 设置期间，它就是该账号的密码；其他账号用 `sudo scripts/launch.sh --reset-user <账号>` 重置。
+- 身份验证器验证码总是错误：检查 Q775 与手机的系统时间（`timedatectl`），两者相差应小于 30 秒。
 - Kiosk 黑屏：通过 SSH 检查 Chromium 命令、Xorg 日志和 `hyper-clock-kiosk` 日志。
 - 修改 `NEXT_PUBLIC_*` 后必须重新执行对应模块的 `npm run build`。
