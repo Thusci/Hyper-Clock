@@ -91,6 +91,20 @@ check_secrets() {
     password|totp) ok "Sign-in method: ${method:-password}" ;;
     *) warn "AUTH_METHOD='$method' is not password or totp; back-stage falls back to password" ;;
   esac
+  local harva_url harva_keys
+  harva_url="$(env_value "$back" HARVA_URL)"
+  harva_keys="$(env_value "$back" HARVA_API_KEYS)"
+  if [[ -n "$harva_url" && -z "$harva_keys" ]]; then
+    warn "HARVA_URL is set but HARVA_API_KEYS is empty; the BTC cards stay hidden"
+  elif [[ -n "$harva_url" ]]; then
+    local code
+    code="$(curl -s -o /dev/null -m 4 -w '%{http_code}' -H "Authorization: Bearer ${harva_keys%%,*}" "${harva_url%/}/api/ha/state" || true)"
+    case "$code" in
+      200) ok "BTC-HARVA reachable with the first API key ($harva_url)" ;;
+      401|403) warn "BTC-HARVA at $harva_url refused the first API key (HTTP $code)" ;;
+      *) warn "BTC-HARVA at $harva_url not reachable from this machine (HTTP ${code:-none}); the cards will show cached values" ;;
+    esac
+  fi
   return 0
 }
 

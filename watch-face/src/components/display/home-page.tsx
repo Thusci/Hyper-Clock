@@ -6,7 +6,7 @@ import { ClockMark } from "./clock-mark";
 import { StatusPill } from "./status-pill";
 import { useLocalClock } from "@/hooks/use-local-clock";
 import type { SolarState } from "@/hooks/use-solar-theme";
-import type { AgendaMap, AppConfig, CalendarEvent, HaCatalog, HassEntity, HassEntityMap, WeatherBundle } from "@/types/config";
+import type { AgendaMap, AppConfig, BtcFeed, CalendarEvent, HaCatalog, HassEntity, HassEntityMap, WeatherBundle } from "@/types/config";
 import { resolveStockIds, stockChange, stockCurrency, stockDirection, stockPercent, stockSymbol } from "@/lib/stocks";
 import { solarTime, WeatherMotion } from "./weather-motion";
 import { SunOrbit } from "./celestial";
@@ -18,6 +18,8 @@ import { isDeviceTile } from "@/lib/catalog";
 import { resolveAlmanac, resolveClimate, resolveComplications, resolveIndoor, resolvePower } from "@/lib/glance";
 import { Complications, CourseTimeline, EnvironmentCard } from "./home-cards";
 import { buildDeviceTree } from "./devices-page";
+import { BtcAccountsCard, BtcTrendCard } from "./btc-cards";
+import { SafeBoundary } from "./safe-boundary";
 
 type DynamicItem = { id: string; kind: "简报" | "备忘" | "股票" | "缓存" | "概览"; title: string; content: string; positive?: boolean };
 
@@ -62,8 +64,9 @@ function weekDates(now: Date | null, timezone: string) {
   return Array.from({ length: 7 }, (_, index) => new Date(anchor.getTime() + (index - mondayOffset) * 86_400_000));
 }
 
-export function HomePage({ config, entities, catalog, agenda, forecast, status, solar, usingCache, cachedAt }: {
+export function HomePage({ config, entities, catalog, agenda, forecast, btc, status, solar, usingCache, cachedAt }: {
   config: AppConfig;
+  btc: BtcFeed | null;
   entities: HassEntityMap;
   catalog: HaCatalog;
   agenda: AgendaMap;
@@ -196,7 +199,7 @@ export function HomePage({ config, entities, catalog, agenda, forecast, status, 
         </div>
       </div>
 
-      <aside className="ambient-deck grid min-h-0 grid-cols-2 gap-3" aria-label="常驻状态卡片">
+      <aside className={`ambient-deck grid min-h-0 grid-cols-2 gap-3 ${btc ? "has-btc" : ""}`} aria-label="常驻状态卡片">
         <article className="glass home-weather-card ambient-card relative col-span-2 min-h-0 overflow-hidden rounded-[var(--r-xl)] p-3">
           <div className="home-weather-stage relative h-full min-h-0 overflow-hidden rounded-[calc(var(--r-xl)_-_.75rem)] bg-[rgb(var(--surface-rgb)/.12)]">
             <div className={`weather-scene-layer ${weatherScene === "weather" ? "active" : ""}`} aria-hidden={weatherScene !== "weather"}>
@@ -233,6 +236,13 @@ export function HomePage({ config, entities, catalog, agenda, forecast, status, 
             <p className="ambient-detail">{tiles.length ? `${online} 个实体在线 · ${tiles.length} 台设备` : "等待 HA 设备树"}</p>
           </>}
         </article>
+
+        {btc && (
+          <div className="home-btc-row col-span-2">
+            <SafeBoundary name="btc trend" fallback={<article className="glass ambient-card rounded-[var(--r-lg)]" />}><BtcTrendCard btc={btc} timezone={config.timezone} /></SafeBoundary>
+            <SafeBoundary name="btc accounts" fallback={<article className="glass ambient-card rounded-[var(--r-lg)]" />}><BtcAccountsCard btc={btc} timezone={config.timezone} /></SafeBoundary>
+          </div>
+        )}
 
         {media ? (
           <article className="glass ambient-card home-status-card rounded-[var(--r-lg)] p-4">

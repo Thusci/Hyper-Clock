@@ -151,12 +151,13 @@ store.ts       data/*.json 原子写入；同一文件的读改写串行化；�
 security.ts    客户端 IP、局域网判定、Kiosk 密钥（常数时间比较）、CSRF、令牌桶
 auth.ts        账号（scrypt）、登录方式（密码 / TOTP）、会话（签名 Cookie + 会话表双重校验，可即时吊销）
 totp.ts        RFC 6238 验证码、防重放、二维码
-ha.ts          全进程唯一 HA 连接；库自带重连，掉线/恢复通过 onStatus 通知
+ha.ts          全进程唯一 HA 连接；库自带重连，30 秒心跳检测半开连接，所有请求带超时，掉线/恢复通过 onStatus 通知
+harva.ts       BTC-HARVA 只读客户端（价格、24 小时 5 分钟线、虚拟账户；各部分独立缓存）
 config.ts      表盘配置 schema（页面类型来自 shared/page-kinds.ts）
 http.ts        route(policy, action) 请求管线
 display.ts     背光命令（仅 /opt/hyper-clock/bin 下的固定可执行文件）
 kiosk/hub.ts   KioskHub：表盘的唯一数据源
-kiosk/feeds.ts 数据 feed 注册表（agenda · weather · history）
+kiosk/feeds.ts 数据 feed 注册表（agenda · weather · history · btc）
 kiosk/commands.ts  Kiosk 命令注册表（ha · display · kiosk）
 page-auth.ts   服务端页面登录守卫
 ```
@@ -173,12 +174,14 @@ page-auth.ts   服务端页面登录守卫
 读一个路由的 policy，就知道它执行了哪些安全检查。
 
 ### KioskHub 生命周期
-1. 第一个表盘连接时启动一次：读取配置与磁盘缓存，连接 HA，订阅一次 `state_changed`。
-2. 每次（重新）连接后执行 **resync**：拉取注册表与全部状态，运行所有 feed，然后广播 `ready`。
-3. HA 掉线时广播 `offline`，表盘显示缓存并明确标注；库会自动重连，首次连接失败时每 15 秒重试。
+1. 第一个表盘连接时启动一次：读取配置与磁盘缓存后立即向表盘推送缓存，再在后台连接 HA（HA 不可达不会阻塞表盘）。
+2. 每次（重新）连接后执行 **resync**（同一时间只运行一个）：拉取注册表与全部状态，运行所有 feed，广播 `ready` 并立即写盘。如果 HA 换了新连接，会重新订阅 `state_changed`。合并时按 HA 的 `last_updated` 保留较新的实体状态。
+3. HA 掉线后先等待 20 秒；仍未恢复才广播 `offline`，表盘显示缓存并明确标注。短暂抖动或 HA 重启不会让表盘在“已连接 / 缓存”之间来回跳。库会自动重连，resync 失败时每 15 秒重试。`needsHa: false` 的 feed（如 `btc`）在 HA 掉线期间照常刷新。
 4. 实体变化合并 250ms 后作为一个 `entities` 事件推送；唤醒触发器只在状态真正变化时触发，属性更新不会触发。
 5. 每 5 秒检查配置文件，有改动就推送 `config` 并刷新 feed，连接保持不断开。
-6. 快照最多每 30 秒写入一次 `runtime-ha-cache.json`。
+6. 快照在每次 resync 成功后立即写入 `runtime-ha-cache.json`，其余时间最多每 30 秒写一次。值未变化的 feed 不会重复推送。
+
+表盘端（`use-ha-stream.ts`）的规则：数据只合并、从不清空；实体只会被同时或更新的状态覆盖（旧缓存不会盖掉新值）；SSE 断开后安静重连，20 秒后才显示离线；45 秒收不到心跳即视为断开并重连；每次连接完成立即写入浏览器缓存。每个页面和卡片都有错误边界，单个卡片出错只影响它自己，并会自动重试。
 
 所有表盘客户端共享同一个订阅和同一组定时器。
 
@@ -186,7 +189,7 @@ page-auth.ts   服务端页面登录守卫
 | 事件 | 数据 |
 | --- | --- |
 | `config` | 完整表盘配置 |
-| `cache` | 离线时的最近快照 `{entities, catalog, feeds, updatedAt}` |
+| `cache` | 离线时的最近快照 `{entities, catalog, feeds, updatedAt}`；表盘只用它填补空缺，不覆盖更新的数据 |
 | `catalog` | 区域 / 设备 / 实体 / 集成目录 |
 | `entities` | 变化的实体（首次为全量） |
 | `feed` | `{ name, value }` |
@@ -320,6 +323,13 @@ scripts/deploy.sh --docker && scripts/launch.sh --docker   # 改用 docker compo
 ---
 
 ## 10. 变更记录
+
+### 连接稳定性与 BTC-HARVA
+- **HA 连接**：30 秒心跳检测半开连接并强制重连；连接、请求、REST 调用都有超时，HA 卡住不会再挂起 resync 或 feed；令牌失效时重建连接并重新订阅。
+- **KioskHub**：启动时不等待 HA；resync 串行；掉线 20 秒宽限期后才通知离线；resync 成功后立即写盘。
+- **表盘**：按 `last_updated` 合并实体，旧缓存不再覆盖新值（数字来回跳的根源）；SSE 心跳看门狗与安静重连；配置未变化时不重新渲染；页面、天空、Multigraph 与卡片的错误边界，加上 `error.tsx` / `global-error.tsx` 自动恢复（不再整页崩溃）。
+- **BTC-HARVA**：首页新增 BTC/USDT 卡片（24 小时 5 分钟收盘价走势、24 小时涨跌、高低点）和轮播的虚拟账户卡片（总计与每个账户的胜负、胜率、P&L）。数据由后台用只读 API key 拉取（`HARVA_URL`、`HARVA_API_KEYS`），后台与浏览器各自缓存，HARVA 不可达时显示最后的数值并标注时间。
+- **小屏**：天气卡片高度不足时自动隐藏次要读数，不再与标题重叠。
 
 ### 部署与登录
 - **脚本拆分**：`scripts/deploy.sh`（同步、构建、安装）与 `scripts/launch.sh`（启动、健康检查、`--stop`、`--reset-user`），公共部分在 `scripts/lib/common.sh`；`launch-production.sh` 保留为两者的组合。

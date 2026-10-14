@@ -9,10 +9,12 @@ import type { AppConfig, HaCatalog, HassEntity, HassEntityMap } from "@/types";
  * KioskHub — the single source of truth the watch face streams from.
  *
  * Lifecycle
- *   start()   once per process, on the first subscriber:
- *             load config + disk cache → connect HA → subscribe to state_changed once
- *   resync()  after every (re)connect: catalog + full states + all feeds → `ready`
- *   offline   HA drops → `offline`; the library reconnects, a retry timer covers a first connect that never succeeded
+ *   start()   once per process, on the first subscriber: load config + disk cache, then
+ *             greet at once (the face paints the cache immediately) and connect HA in the background
+ *   resync()  after every (re)connect, one at a time: catalog + full states + all feeds → `ready`;
+ *             subscribes to state_changed again whenever ha.ts had to build a new connection
+ *   offline   HA drops → wait OFFLINE_GRACE_MS before announcing `offline`, so a short blip or an
+ *             HA restart does not flip the face to "cache" and back; a retry timer covers failed resyncs
  *
  * Fan-out
  *   Entity changes are batched for 250 ms into one `entities` event, so a chatty HA
@@ -21,8 +23,9 @@ import type { AppConfig, HaCatalog, HassEntity, HassEntityMap } from "@/types";
  *   Wake triggers fire only on a real state transition, not on attribute-only updates.
  *
  * Persistence
- *   The snapshot is written to runtime-ha-cache.json at most every 30 s, so a restart
- *   (or HA outage) still paints the last known state, clearly flagged as cache.
+ *   The snapshot is written to runtime-ha-cache.json right after every successful resync and
+ *   otherwise at most every 30 s, so a restart (or HA outage) still paints the last known state,
+ *   clearly flagged as cache. Feeds that fail keep their previous value.
  *
  * SSE events: config · cache · catalog · entities · feed · wake · ready · offline · heartbeat
  */
@@ -42,6 +45,7 @@ const CONFIG_POLL_MS = 5000;
 const PERSIST_MS = 30_000;
 const HEARTBEAT_MS = 15_000;
 const RETRY_MS = 15_000;
+const OFFLINE_GRACE_MS = 20_000;
 
 async function loadCache(): Promise<Snapshot> {
   const raw = await readJson<LegacyCache>(files.haCache, {});
@@ -55,13 +59,29 @@ async function loadCache(): Promise<Snapshot> {
   };
 }
 
+/** `fresh` decides which entities exist; an entity in `held` wins only when HA stamped it later. */
+function keepNewer(fresh: HassEntityMap, held: HassEntityMap): HassEntityMap {
+  const merged = { ...fresh };
+  for (const [id, entity] of Object.entries(held)) {
+    const incoming = fresh[id];
+    if (incoming && Date.parse(entity.last_updated ?? "") > Date.parse(incoming.last_updated ?? "")) merged[id] = entity;
+  }
+  return merged;
+}
+
 class KioskHub {
   private clients = new Set<Send>();
   private config!: AppConfig;
   private configHash = "";
   private snapshot: Snapshot = { entities: {}, catalog: emptyCatalog, feeds: {}, updatedAt: "" };
+  /** What clients were told: stays true through a short HA blip. */
   private live = false;
-  private subscribed = false;
+  /** Whether HA is actually reachable right now. */
+  private haUp = false;
+  private subscribedGeneration = 0;
+  private resyncing: Promise<void> | null = null;
+  private resyncAgain = false;
+  private offlineTimer: NodeJS.Timeout | undefined;
   private dirty = false;
   private pending: HassEntityMap = {};
   private batchTimer: NodeJS.Timeout | undefined;
@@ -95,8 +115,10 @@ class KioskHub {
       setInterval(() => void this.persist(), PERSIST_MS);
       setInterval(() => this.broadcast("heartbeat", {}), HEARTBEAT_MS);
       for (const feed of feeds) setInterval(() => void this.refreshFeed(feed), feed.intervalMs);
-      ha.onStatus((status) => status === "offline" ? this.goOffline() : void this.resync());
-      await this.resync();
+      ha.onStatus((status) => status === "offline" ? this.haDown() : void this.resync());
+      // Do not wait for HA: an unreachable host must not keep the face from painting its cache.
+      void this.resync();
+      for (const feed of feeds) if (feed.needsHa === false) void this.refreshFeed(feed);
     })();
     return this.starting;
   }
@@ -118,33 +140,62 @@ class KioskHub {
     for (const send of this.clients) send(event, data);
   }
 
-  private async resync() {
+  /** One resync at a time; a request that arrives meanwhile runs once more afterwards. */
+  private resync(): Promise<void> {
+    if (this.resyncing) {
+      this.resyncAgain = true;
+      return this.resyncing;
+    }
+    this.resyncing = this.doResync().finally(() => {
+      this.resyncing = null;
+      if (this.resyncAgain) {
+        this.resyncAgain = false;
+        void this.resync();
+      }
+    });
+    return this.resyncing;
+  }
+
+  private async doResync() {
     clearTimeout(this.retryTimer);
     try {
       const [catalog, entities] = await Promise.all([ha.catalog(), ha.states()]);
-      this.snapshot = { ...this.snapshot, catalog, entities };
-      if (!this.subscribed) {
+      if (this.subscribedGeneration !== ha.generation) {
         await ha.subscribeStates((next, previous) => this.onState(next, previous));
-        this.subscribed = true;
+        this.subscribedGeneration = ha.generation;
       }
+      // A change that arrived while the full state was in flight is newer than that state.
+      this.snapshot = { ...this.snapshot, catalog, entities: keepNewer(entities, this.snapshot.entities) };
+      this.haUp = true;
       this.live = true;
+      clearTimeout(this.offlineTimer);
+      this.offlineTimer = undefined;
       this.touch();
       this.broadcast("catalog", catalog);
-      this.broadcast("entities", entities);
+      this.broadcast("entities", this.snapshot.entities);
       await Promise.allSettled(feeds.map((feed) => this.refreshFeed(feed)));
       this.broadcast("ready", {});
       await this.persist();
     } catch {
-      this.goOffline();
+      this.haDown();
       this.retryTimer = setTimeout(() => void this.resync(), RETRY_MS);
     }
   }
 
-  /** Announce only the live → offline transition; new clients learn the state from greet(). */
-  private goOffline() {
-    if (!this.live) return;
-    this.live = false;
-    this.broadcast("offline", { cachedAt: this.snapshot.updatedAt || null });
+  /**
+   * HA is unreachable. Clients keep showing the last picture as live for OFFLINE_GRACE_MS;
+   * only a longer outage is announced as `offline` (and only once — new clients learn it from greet()).
+   */
+  private haDown() {
+    this.haUp = false;
+    if (!this.live || this.offlineTimer) return;
+    this.offlineTimer = setTimeout(() => {
+      this.offlineTimer = undefined;
+      if (this.haUp || !this.live) return;
+      this.live = false;
+      this.broadcast("offline", { cachedAt: this.snapshot.updatedAt || null });
+      void this.persist();
+    }, OFFLINE_GRACE_MS);
   }
 
   private onState(next: HassEntity, previous: HassEntity | null) {
@@ -166,9 +217,12 @@ class KioskHub {
   }
 
   private async refreshFeed(feed: Feed) {
-    if (!this.live) return;
+    if (feed.needsHa !== false && !this.haUp) return;
     try {
-      const value = await feed.load({ config: this.config, entities: this.snapshot.entities, catalog: this.snapshot.catalog });
+      const previous = this.snapshot.feeds[feed.name];
+      const value = await feed.load({ config: this.config, entities: this.snapshot.entities, catalog: this.snapshot.catalog, previous });
+      // An unchanged value is not re-sent: every push re-renders the face.
+      if (JSON.stringify(value) === JSON.stringify(previous)) return;
       this.snapshot.feeds[feed.name] = value;
       this.touch();
       this.broadcast("feed", { name: feed.name, value });

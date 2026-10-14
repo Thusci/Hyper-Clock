@@ -110,6 +110,7 @@ The most important `back-stage` variables (the full list is in [`back-stage/.env
 | `AUTH_METHOD` | `password` (default) or `totp`. With `totp`, users sign in with an authenticator code, binding it with their password on first sign-in. |
 | `ALLOW_WAN`, `TRUST_PROXY_HEADERS`, `COOKIE_SECURE` | Network boundary. Keep LAN-only unless the device sits behind a VPN or HTTPS proxy. |
 | `Q775_SIDECAR_URL`, `Q775_SIDECAR_TOKEN` | Screen on/off and brightness through the sidecar. |
+| `HARVA_URL`, `HARVA_API_KEYS` | Optional BTC-HARVA service: adds the BTC/USDT 24 h trend and the rolling virtual-account card to the home face. Read-only keys, comma-separated. |
 
 ## Documentation
 

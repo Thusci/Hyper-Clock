@@ -90,6 +90,10 @@ DISPLAY_ON_COMMAND=/opt/hyper-clock/bin/display-on
 # 推荐：通过 Q775 sidecar（第 8 节）控制屏幕；设置后上面两条命令不再使用
 Q775_SIDECAR_URL=http://127.0.0.1:8765
 Q775_SIDECAR_TOKEN=粘贴_/etc/q775-daemon/config.toml_中的_token
+# 可选：BTC-HARVA（首页 BTC/USDT 走势与虚拟账户卡片）。在 HARVA 的 设置 → API keys 创建只读 key；
+# 多个 key 用逗号分隔（每个 HARVA 用户一个），表盘显示这些用户的全部账户。留空则不显示卡片。
+HARVA_URL=http://192.168.1.111:8000
+HARVA_API_KEYS=harva_粘贴只读_key
 ```
 
 然后创建表盘环境文件；`KIOSK_SHARED_SECRET` 必须与上面完全一致：

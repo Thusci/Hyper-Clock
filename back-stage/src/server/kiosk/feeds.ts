@@ -1,6 +1,7 @@
 import "server-only";
 import { ha } from "../ha";
-import type { AgendaMap, AppConfig, HaCatalog, HassEntityMap, HistoryMap, WeatherBundle } from "@/types";
+import { loadBtc } from "../harva";
+import type { AgendaMap, AppConfig, BtcFeed, HaCatalog, HassEntityMap, HistoryMap, WeatherBundle } from "@/types";
 
 /**
  * Feeds are the extension point for kiosk data beyond raw entity states.
@@ -10,13 +11,16 @@ import type { AgendaMap, AppConfig, HaCatalog, HassEntityMap, HistoryMap, Weathe
  * then pushes `{ name, value }` to the watch face as an SSE `feed` event. A failed load
  * keeps the previous value. To add one: write a Feed and append it to `feeds` below;
  * the watch face reads it as `feeds[name]` with no transport changes.
+ *
+ * A feed with `needsHa: false` talks to another service and keeps running while HA is down.
  */
-export type FeedContext = { config: AppConfig; entities: HassEntityMap; catalog: HaCatalog };
+export type FeedContext<T = unknown> = { config: AppConfig; entities: HassEntityMap; catalog: HaCatalog; previous: T | undefined };
 
 export type Feed<T = unknown> = {
   name: string;
   intervalMs: number;
-  load: (context: FeedContext) => Promise<T>;
+  needsHa?: boolean;
+  load: (context: FeedContext<T>) => Promise<T>;
 };
 
 const DAY = 86_400_000;
@@ -60,4 +64,12 @@ const history: Feed<HistoryMap> = {
   load: ({ config }) => config.entities.stocks.length ? ha.history(config.entities.stocks) : Promise.resolve({}),
 };
 
-export const feeds: Feed[] = [agenda, weather, history];
+/** BTC-HARVA on the LAN (server/harva.ts); null when HARVA_URL / HARVA_API_KEYS are not set. */
+const btc: Feed<BtcFeed | null> = {
+  name: "btc",
+  intervalMs: 15_000,
+  needsHa: false,
+  load: ({ previous }) => loadBtc(previous),
+};
+
+export const feeds = [agenda, weather, history, btc] as Feed[];

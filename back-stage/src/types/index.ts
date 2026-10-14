@@ -1,7 +1,7 @@
 import type { PageKind } from "@/shared/page-kinds";
 export type Role = "admin" | "viewer";
 export type SessionUser = { username: string; role: Role; sessionId: string };
-export type HassEntity = { entity_id: string; state: string; attributes: Record<string, unknown>; last_changed?: string };
+export type HassEntity = { entity_id: string; state: string; attributes: Record<string, unknown>; last_changed?: string; last_updated?: string };
 export type HassEntityMap = Record<string, HassEntity>;
 export type CalendarEvent = { summary:string; start:{dateTime?:string;date?:string}; end:{dateTime?:string;date?:string}; description?:string; location?:string };
 export type AgendaMap = Record<string, CalendarEvent[]>;
@@ -31,3 +31,8 @@ export type AppConfig = {
   };
   wakeTriggers:Array<{ id:string; entityId:string; toState?:string; mode:"full"|"minimal"; enabled:boolean }>;
 };
+
+/** BTC-HARVA feed (`feeds.btc`): BTC/USDT price, the last 24 h of 5-minute closes and every readable virtual account. Each part keeps its own timestamp. */
+export type BtcDay = { start:number; end:number; open:number; high:number; low:number; closes:number[] };
+export type BtcAccount = { id:number; name:string; mode:string; active:boolean; equity:number|null; pnl:number|null; winRate:number|null; windowsTraded:number; wins:number; losses:number; streak:{ kind:string; n:number }|null; openPositions:number };
+export type BtcFeed = { price:number|null; chainlink:number|null; priceAt:string|null; day:BtcDay|null; dayAt:string|null; accounts:BtcAccount[]; accountsAt:string|null; feedsOk:boolean; error:string|null };

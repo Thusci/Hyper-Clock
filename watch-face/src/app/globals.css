@@ -367,6 +367,8 @@ button { color: inherit; }
 .page-empty h2 { margin:0; font-size:1.6rem; letter-spacing:-.03em; }
 /* Home deck: weather · today's classes (timeline) · week + devices · room + overview. */
 .ambient-deck { container-type:size; grid-template-rows:minmax(15.5rem,1.4fr) minmax(7.6rem,.8fr) minmax(7.6rem,.8fr) minmax(6.4rem,.7fr); }
+/* With BTC-HARVA configured the deck gains a row: weather · classes · week + devices · BTC · room + overview. */
+.ambient-deck.has-btc { grid-template-rows:minmax(13rem,1.2fr) minmax(6.8rem,.72fr) minmax(7.2rem,.76fr) minmax(6.6rem,.7fr) minmax(6rem,.64fr); }
 .ambient-card { min-height: 0; overflow: hidden; }
 .ambient-card > * { position:relative; z-index:1; }
 .ambient-label { display: inline-flex; align-items: center; gap: .5rem; padding: 0; border: 0; color: var(--muted); background: none; font-size: .6rem; font-weight: 600; letter-spacing: .18em; line-height:1; text-transform: uppercase; }
@@ -418,6 +420,11 @@ button { color: inherit; }
 .weather-hud-chip span { overflow:hidden; font-size:.57rem; line-height:1; text-overflow:ellipsis; white-space:nowrap; }
 .weather-hud-chip b { overflow:hidden; color:var(--ink); font-size:.64rem; font-variant-numeric:tabular-nums; line-height:1; text-overflow:ellipsis; white-space:nowrap; }
 .weather-hud-left .weather-hud-chip { width:7.55rem; }
+/* A short weather card (small screens, or the extra BTC row) keeps the most useful readouts instead of overlapping the title. */
+@container (max-height: 17.6rem) { .weather-hud-left .weather-hud-chip:nth-child(n+4) { display:none; } }
+@container (max-height: 15.5rem) { .weather-hud-left .weather-hud-chip:nth-child(n+3) { display:none; } }
+@container (max-height: 13.4rem) { .weather-hud-left .weather-hud-chip:nth-child(n+2) { display:none; } }
+@container (max-height: 11.3rem) { .weather-hud-left { display:none!important; } }
 .weather-hud-bottom .weather-hud-chip { flex: 1 1 0; }
 .weather-hud-sun { display:flex; min-width:5.7rem; flex-direction:column; gap:.14rem; color:var(--muted); font-size:.54rem; line-height:1.25; text-align:right; white-space:nowrap; }
 .home-weather-metrics { container-type: inline-size; }
@@ -838,6 +845,7 @@ button { color: inherit; }
   .system-layout,
   .stocks-layout { padding-top:1rem!important; padding-bottom:2.6rem!important; }
   .ambient-deck { gap:.55rem; grid-template-rows:minmax(13.5rem,1.35fr) minmax(6.8rem,.8fr) minmax(6.6rem,.78fr) minmax(5.6rem,.7fr); }
+  .ambient-deck.has-btc { grid-template-rows:minmax(16.5rem,1.5fr) minmax(5rem,.5fr) minmax(6.2rem,.7fr) minmax(5.8rem,.7fr) minmax(5rem,.55fr); }
   .home-clock-column { gap:.65rem; padding-top:.5rem!important; padding-bottom:.5rem!important; }
   .clock-date-row { margin-top:.7rem; }
   .solar-horizon { margin-top:.85rem; }
@@ -852,6 +860,38 @@ button { color: inherit; }
   .course-block { padding:.75rem .9rem; }
   .schedule-course-grid { grid-auto-rows:minmax(5.6rem,1fr); }
 }
+
+/* Home: BTC-HARVA — a long trend card and a small rolling accounts card. */
+.home-btc-row { display:grid; min-height:0; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:inherit; }
+.home-btc-row > .ambient-card { min-height:0; }
+.btc-trend-card,.btc-accounts-card { display:flex; min-width:0; flex-direction:column; padding:clamp(.65rem,1.8cqh,.9rem) clamp(.8rem,2cqh,1rem); }
+.btc-head { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.btc-live { color:var(--faint); font-size:.56rem; font-weight:600; letter-spacing:.14em; font-variant-numeric:tabular-nums; }
+.btc-live.stale { color:var(--amber); letter-spacing:.04em; }
+.btc-price-row { display:flex; min-width:0; align-items:baseline; gap:.6rem; margin-top:clamp(.25rem,1cqh,.45rem); }
+.btc-price { overflow:hidden; font-family:var(--font-display); font-size:clamp(1.2rem,4.2cqh,1.6rem); font-weight:500; line-height:1; letter-spacing:-.03em; font-variant-numeric:tabular-nums; text-overflow:ellipsis; white-space:nowrap; }
+.btc-change { flex:0 0 auto; font-size:.7rem; font-weight:600; font-variant-numeric:tabular-nums; }
+.btc-change.up,.btc-pnl.up,.btc-wl .up { color:var(--green); }
+.btc-change.down,.btc-pnl.down,.btc-wl .down { color:var(--red); }
+.btc-chart { display:flex; min-height:1.6rem; flex:1 1 auto; flex-direction:column; gap:.2rem; margin-top:.4rem; }
+.btc-plot { position:relative; min-height:0; flex:1 1 auto; }
+.btc-plot svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.btc-trend-card { --btc-tone:var(--brand); }
+.btc-trend-card.up { --btc-tone:var(--green); }
+.btc-trend-card.down { --btc-tone:var(--red); }
+.btc-line { fill:none; stroke:var(--btc-tone); stroke-width:1.4; vector-effect:non-scaling-stroke; stroke-linejoin:round; }
+.btc-area { fill:color-mix(in srgb,var(--btc-tone) 12%,transparent); stroke:none; }
+.btc-open { stroke:var(--line); stroke-width:1; stroke-dasharray:3 4; vector-effect:non-scaling-stroke; }
+.btc-dot { position:absolute; right:-2px; width:5px; height:5px; margin-top:-2.5px; border-radius:50%; background:var(--btc-tone); box-shadow:0 0 10px var(--btc-tone); }
+.btc-scale { display:flex; justify-content:space-between; color:var(--faint); font-size:.54rem; font-variant-numeric:tabular-nums; letter-spacing:.06em; }
+.btc-slide { display:flex; min-width:0; min-height:0; flex:1 1 auto; flex-direction:column; justify-content:flex-end; gap:.18rem; margin-top:.3rem; }
+.btc-slide-title { display:flex; min-width:0; align-items:center; gap:.35rem; overflow:hidden; font-size:.72rem; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
+.btc-slide-title em { flex:0 0 auto; padding:.05rem .32rem; border:1px solid var(--line); border-radius:.4rem; color:var(--muted); font-size:.52rem; font-style:normal; letter-spacing:.08em; }
+.btc-pnl { font-family:var(--font-display); font-size:clamp(1rem,3.6cqh,1.3rem); font-weight:500; line-height:1.05; font-variant-numeric:tabular-nums; }
+.btc-wl { display:flex; align-items:baseline; gap:.5rem; font-size:.66rem; font-variant-numeric:tabular-nums; }
+.btc-wl b { font-weight:600; }
+.btc-wl i { color:var(--muted); font-style:normal; }
+.btc-slide-detail { overflow:hidden; color:var(--faint); font-size:.56rem; text-overflow:ellipsis; white-space:nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }

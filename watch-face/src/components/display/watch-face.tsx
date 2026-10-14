@@ -2,6 +2,7 @@
 
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Multigraph } from "./multigraph";
+import { SafeBoundary } from "./safe-boundary";
 import { SkyField } from "./sky-field";
 import { VoiceOverlay } from "./voice-overlay";
 import { useDisplayController } from "@/hooks/use-display-controller";
@@ -120,7 +121,7 @@ export function WatchFace({ initialConfig, controlUrl }: { initialConfig: AppCon
   if (controller.mode === "minimal") {
     return (
       <main className="display-shell power-save grid min-h-dvh place-items-center" style={shellStyle} onPointerDown={controller.wake}>
-        <div className="display-drift"><Multigraph locale={config.locale} timezone={config.timezone} entities={entities} weatherEntity={config.weatherEntity} rising={solar.rising} setting={solar.setting} /></div>
+        <div className="display-drift"><SafeBoundary name="multigraph" retryMs={10_000}><Multigraph locale={config.locale} timezone={config.timezone} entities={entities} weatherEntity={config.weatherEntity} rising={solar.rising} setting={solar.setting} /></SafeBoundary></div>
         <span className="minimal-hint">按任意功能键唤醒</span>
       </main>
     );
@@ -128,7 +129,7 @@ export function WatchFace({ initialConfig, controlUrl }: { initialConfig: AppCon
 
   return (
     <main className={`display-shell relative min-h-dvh ${skyReady ? "has-sky" : ""}`} data-solar-phase={solar.phase} style={shellStyle}>
-      <SkyField phase={solar.phase} timezone={config.timezone} condition={condition} progress={solar.progress} sunUp={sunUp} onReady={setSkyReady} />
+      <SafeBoundary name="sky" retryMs={120_000}><SkyField phase={solar.phase} timezone={config.timezone} condition={condition} progress={solar.progress} sunUp={sunUp} onReady={setSkyReady} /></SafeBoundary>
       {!skyReady && <>
         <div className="ambient-orb ambient-orb-a" aria-hidden="true" />
         <div className="ambient-orb ambient-orb-b" aria-hidden="true" />
@@ -137,7 +138,7 @@ export function WatchFace({ initialConfig, controlUrl }: { initialConfig: AppCon
         <div className={`page-stage flex h-full ${dragX ? "dragging" : ""}`} style={{ transform: `translate3d(calc(-${activePageIndex * 100}% + ${dragX}px),0,0)` }}>
           {pages.map((page, index) => (
             <div key={page.id} className={`page-panel ${index === activePageIndex ? "active" : index < activePageIndex ? "before" : "after"}`} aria-hidden={activePageIndex !== index}>
-              {renderPage(page.kind, { config, entities, catalog, feeds, status, solar, usingCache, cachedAt })}
+              <SafeBoundary name={`page ${page.kind}`}>{renderPage(page.kind, { config, entities, catalog, feeds, status, solar, usingCache, cachedAt })}</SafeBoundary>
             </div>
           ))}
         </div>

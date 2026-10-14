@@ -35,7 +35,7 @@ export type PageProps = {
  * New back-end data arrives through `feeds[name]`, so no plumbing is needed in between.
  */
 export const pageRegistry: Record<string, ComponentType<PageProps>> = {
-  home: (p) => <HomePage config={p.config} entities={p.entities} catalog={p.catalog} agenda={p.feeds.agenda ?? {}} forecast={p.feeds.weather ?? null} status={p.status} solar={p.solar} usingCache={p.usingCache} cachedAt={p.cachedAt} />,
+  home: (p) => <HomePage config={p.config} entities={p.entities} catalog={p.catalog} agenda={p.feeds.agenda ?? {}} forecast={p.feeds.weather ?? null} btc={p.feeds.btc ?? null} status={p.status} solar={p.solar} usingCache={p.usingCache} cachedAt={p.cachedAt} />,
   weather: (p) => <WeatherPage config={p.config} entities={p.entities} forecast={p.feeds.weather ?? null} solar={p.solar} />,
   devices: (p) => <DevicesPage entities={p.entities} catalog={p.catalog} />,
   schedule: (p) => <SchedulePage config={p.config} agenda={p.feeds.agenda ?? {}} />,

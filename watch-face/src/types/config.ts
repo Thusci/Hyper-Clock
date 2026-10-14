@@ -62,6 +62,7 @@ export type HassEntity = {
     icon?: string;
   };
   last_changed?: string;
+  last_updated?: string;
 };
 
 export type HassEntityMap = Record<string, HassEntity>;
@@ -144,4 +145,10 @@ export type FeedMap = {
   agenda?: AgendaMap;
   weather?: WeatherBundle | null;
   history?: HistoryMap;
+  btc?: BtcFeed | null;
 } & Record<string, unknown>;
+
+/** BTC-HARVA feed (`feeds.btc`): BTC/USDT price, the last 24 h of 5-minute closes and every readable virtual account. Each part keeps its own timestamp. */
+export type BtcDay = { start:number; end:number; open:number; high:number; low:number; closes:number[] };
+export type BtcAccount = { id:number; name:string; mode:string; active:boolean; equity:number|null; pnl:number|null; winRate:number|null; windowsTraded:number; wins:number; losses:number; streak:{ kind:string; n:number }|null; openPositions:number };
+export type BtcFeed = { price:number|null; chainlink:number|null; priceAt:string|null; day:BtcDay|null; dayAt:string|null; accounts:BtcAccount[]; accountsAt:string|null; feedsOk:boolean; error:string|null };

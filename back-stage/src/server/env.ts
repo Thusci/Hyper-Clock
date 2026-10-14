@@ -26,6 +26,9 @@ const schema = z.object({
   Q775_SIDECAR_TOKEN: z.string().optional().transform((value) => value || undefined),
   DISPLAY_OFF_COMMAND: z.string().optional(),
   DISPLAY_ON_COMMAND: z.string().optional(),
+  /** BTC-HARVA (optional): base URL and read-only API keys, comma-separated, one per HARVA user whose accounts should show. */
+  HARVA_URL: z.string().optional().transform((value) => value?.trim().replace(/\/+$/, "") || undefined),
+  HARVA_API_KEYS: z.string().optional().transform((value) => [...new Set((value ?? "").split(/[\s,]+/).filter(Boolean))]),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -45,4 +48,9 @@ export function env(): Env {
 export function haConfigured() {
   const { HA_URL, HA_TOKEN } = env();
   return Boolean(HA_URL && HA_TOKEN);
+}
+
+export function harvaConfigured() {
+  const { HARVA_URL, HARVA_API_KEYS } = env();
+  return Boolean(HARVA_URL && HARVA_API_KEYS.length);
 }
