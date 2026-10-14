@@ -1,0 +1,36 @@
+[Unit]
+Description=Hyper Clock kiosk watch face
+After=network-online.target hyper-clock-back-stage.service
+Wants=network-online.target
+Requires=hyper-clock-back-stage.service
+
+[Service]
+Type=simple
+User=hyperclock
+Group=hyperclock
+WorkingDirectory=/opt/hyper-clock/watch-face
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3000
+EnvironmentFile=/etc/hyper-clock/watch-face.env
+UMask=0077
+ExecStart=/usr/bin/node scripts/start.mjs
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,45 @@
+[server]
+host = "0.0.0.0"
+port = 8765
+# Generate with: openssl rand -hex 32
+token = "replace-with-at-least-32-random-characters"
+telemetry_interval_seconds = 5
+# Slow refresh (cameras, SMART health, optional udev tree).
+device_refresh_seconds = 1800
+allowed_origins = []
+
+[collectors]
+sys_root = "/sys"
+enable_smart = true
+# Heavy and of no use on the face; enable only for diagnostics.
+enable_udev = false
+enable_powertop = false
+powertop_interval_seconds = 300
+powertop_sample_seconds = 5
+max_udev_devices = 4096
+
+[camera]
+enabled = true
+ffmpeg = "/usr/bin/ffmpeg"
+width = 1280
+height = 720
+fps = 10
+jpeg_quality = 5
+max_streams = 2
+
+[display]
+# Empty: first raw/firmware backlight (intel_backlight on the Q775).
+backlight = ""
+min_brightness_percent = 5
+
+[power]
+allow_suspend = true
+# Arm Wake-on-WLAN (magic packet) before every suspend.
+wake_on_wlan = true
+wifi_interface = ""
+
+[input]
+# Turn the screen on when a hardware button is pressed (read passively; the browser still gets the key).
+wake_on_keys = true
+# 114 VOLUMEDOWN · 115 VOLUMEUP · 125 LEFTMETA (Windows button) · 126 RIGHTMETA
+wake_keys = [114, 115, 125, 126]

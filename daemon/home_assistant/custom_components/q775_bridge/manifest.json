@@ -1,0 +1,10 @@
+{
+  "domain": "q775_bridge",
+  "name": "Q775 Sidecar",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/local/hyper-clock/tree/main/daemon",
+  "iot_class": "local_push",
+  "requirements": [],
+  "version": "0.2.0"
+}

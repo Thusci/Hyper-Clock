@@ -1,0 +1,33 @@
+import type { PageKind } from "@/shared/page-kinds";
+export type Role = "admin" | "viewer";
+export type SessionUser = { username: string; role: Role; sessionId: string };
+export type HassEntity = { entity_id: string; state: string; attributes: Record<string, unknown>; last_changed?: string };
+export type HassEntityMap = Record<string, HassEntity>;
+export type CalendarEvent = { summary:string; start:{dateTime?:string;date?:string}; end:{dateTime?:string;date?:string}; description?:string; location?:string };
+export type AgendaMap = Record<string, CalendarEvent[]>;
+export type HaCatalog = {
+  connected:boolean;
+  areas:Array<{areaId:string;name:string}>;
+  integrations:Array<{domain:string;title:string;state:string;source?:string;entryCount:number;deviceCount:number;entityCount:number;serviceCount:number}>;
+  /** `integrations` lists the HA integrations (config-entry domains) a device belongs to, e.g. ["mobile_app"]. */
+  devices:Array<{deviceId:string;name:string;areaId:string|null;areaName?:string;manufacturer?:string;model?:string;integrations:string[];service?:boolean}>;
+  /** `platform` is the integration that created the entity (mobile_app, icloud3, ibeacon, …). */
+  entities:Array<{entityId:string;name:string;domain:string;deviceId?:string|null;areaId:string|null;areaName?:string;disabled:boolean;platform?:string;category?:string}>;
+};
+export type WeatherForecastItem = { datetime:string; condition?:string; temperature?:number; templow?:number; precipitation?:number; precipitation_probability?:number; humidity?:number; pressure?:number; wind_speed?:number; wind_bearing?:number|string };
+export type WeatherBundle = { entityId:string; daily:WeatherForecastItem[]; hourly:WeatherForecastItem[]; updatedAt:string };
+export type HistoryPoint = { state:string; last_changed:string };
+export type HistoryMap = Record<string,HistoryPoint[]>;
+export type AppConfig = {
+  deviceName: string; locale: string; timezone: string;
+  idle: { minimalAfterMs:number; screenOffAfterMs:number; winLongPressMs:number; voiceLongPressMs:number; minimalLongPressMs:number };
+  voice: { enabled:boolean; wakeWord:boolean; winKey:boolean; endpoint:string };
+  theme: { accent:string; cardOpacity:number; clockScale:number; burnInShift:boolean };
+  weatherEntity:string;
+  pages:Array<{ id:string; title:string; enabled:boolean; kind:PageKind; cards:string[] }>;
+  entities:{
+    lights:string[]; sensors:string[]; calendars:string[]; courses:string[]; mediaPlayers:string[]; briefings:string[]; memos:string[]; stocks:string[];
+    systemMetrics:{ cpu:string; memory:string; disk:string; power:string; temperature:string; uptime:string };
+  };
+  wakeTriggers:Array<{ id:string; entityId:string; toState?:string; mode:"full"|"minimal"; enabled:boolean }>;
+};

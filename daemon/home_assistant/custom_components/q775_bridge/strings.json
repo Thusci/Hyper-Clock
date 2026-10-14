@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Q775 sensor daemon",
+        "description": "The daemon must be reachable from Home Assistant.",
+        "data": {"base_url": "Daemon URL", "token": "Access token"}
+      }
+    },
+    "error": {"cannot_connect": "Unable to connect or authenticate"},
+    "abort": {"already_configured": "This daemon is already configured"}
+  }
+}
+

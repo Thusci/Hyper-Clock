@@ -1,0 +1,13 @@
+**/node_modules
+**/.next
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+**/.env copy
+back-stage/data/runtime-*
+back-stage/data/audit.ndjson
+back-stage/data.backup-*
+daemon
+docs
+home-assistant

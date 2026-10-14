@@ -1,0 +1,35 @@
+[Unit]
+Description=Hyper Clock management and Home Assistant bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hyperclock
+Group=hyperclock
+WorkingDirectory=/opt/hyper-clock/back-stage
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3001
+EnvironmentFile=/etc/hyper-clock/back-stage.env
+UMask=0077
+ExecStart=/usr/bin/node scripts/start.mjs
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,30 @@
+[Unit]
+Description=Hyper Clock Xorg, Openbox and Chromium kiosk session
+After=network-online.target nginx.service hyper-clock-watch-face.service
+Wants=network-online.target
+Requires=hyper-clock-watch-face.service
+Conflicts=getty@tty1.service
+StartLimitIntervalSec=120
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=hyperclock
+Group=hyperclock
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+Environment=HOME=/home/hyperclock
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+WorkingDirectory=/home/hyperclock
+ExecStart=/usr/bin/startx /opt/hyper-clock/deploy/linux/kiosk-session -- :0 vt1 -keeptty -nolisten tcp -nocursor
+KillMode=control-group
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

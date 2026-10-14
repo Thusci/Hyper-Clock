@@ -1,0 +1,4 @@
+# Public URL of the trusted back-stage control plane. It never contains secrets.
+NEXT_PUBLIC_CONTROL_PLANE_URL=http://127.0.0.1:3001
+CONTROL_PLANE_URL=http://127.0.0.1:3001
+KIOSK_SHARED_SECRET=ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bbca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb

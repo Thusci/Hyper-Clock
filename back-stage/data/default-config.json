@@ -1,0 +1,30 @@
+{
+  "deviceName": "Q775 Living Display",
+  "locale": "zh-CN",
+  "timezone": "Asia/Shanghai",
+  "idle": { "minimalAfterMs": 300000, "screenOffAfterMs": 900000, "winLongPressMs": 900, "voiceLongPressMs": 500, "minimalLongPressMs": 1800 },
+  "voice": { "enabled": false, "wakeWord": false, "winKey": true, "endpoint": "" },
+  "theme": { "accent": "#79a9ff", "cardOpacity": 72, "clockScale": 100, "burnInShift": true },
+  "weatherEntity": "",
+  "pages": [
+    { "id": "home", "title": "此刻", "enabled": true, "kind": "home", "cards": ["clock", "weather", "calendar", "courses", "devices", "media", "dynamic"] },
+    { "id": "weather", "title": "天气", "enabled": true, "kind": "weather", "cards": ["current", "metrics", "hourly", "daily"] },
+    { "id": "devices", "title": "设备", "enabled": true, "kind": "devices", "cards": ["ha-device-tree"] },
+    { "id": "schedule", "title": "课表", "enabled": true, "kind": "schedule", "cards": ["today", "week"] },
+    { "id": "calendar", "title": "日历", "enabled": true, "kind": "calendar", "cards": ["month", "agenda"] },
+    { "id": "system", "title": "Q775", "enabled": true, "kind": "system", "cards": ["cpu", "memory", "disk", "power"] },
+    { "id": "stocks", "title": "行情", "enabled": true, "kind": "stocks", "cards": ["quotes", "trend"] }
+  ],
+  "entities": {
+    "lights": [],
+    "sensors": [],
+    "calendars": [],
+    "courses": [],
+    "mediaPlayers": [],
+    "briefings": [],
+    "memos": [],
+    "stocks": [],
+    "systemMetrics": { "cpu": "", "memory": "", "disk": "", "power": "", "temperature": "", "uptime": "" }
+  },
+  "wakeTriggers": []
+}

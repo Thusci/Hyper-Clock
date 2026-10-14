@@ -1,0 +1,1 @@
+import { HaConsole } from "@hyper-clock/ha-console";import { requirePageUser } from "@/server/page-auth";export const dynamic="force-dynamic";export default async function HaPage(){const user=await requirePageUser();return <HaConsole role={user.role}/>}

@@ -1,0 +1,1 @@
+import { ConfigEditor } from "@/components/config-editor";import { readConfig } from "@/server/config";import { requirePageUser } from "@/server/page-auth";export default async function Page(){const u=await requirePageUser();return <ConfigEditor initial={await readConfig()} mode="dashboard" readOnly={u.role!=="admin"}/>}

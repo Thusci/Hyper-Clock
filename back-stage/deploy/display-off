@@ -1,0 +1,3 @@
+#!/bin/sh
+# Replace eDP-1 after checking the real output name with xrandr --query.
+exec xrandr --display :0 --output eDP-1 --off

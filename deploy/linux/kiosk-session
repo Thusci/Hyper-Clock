@@ -1,0 +1,91 @@
+#!/bin/sh
+set -eu
+
+export DISPLAY="${DISPLAY:-:0}"
+
+openbox_pid=""
+chromium_pid=""
+watchdog_pid=""
+
+cleanup() {
+  trap - EXIT INT TERM HUP
+  [ -n "$watchdog_pid" ] && kill "$watchdog_pid" 2>/dev/null || true
+  [ -n "$chromium_pid" ] && kill "$chromium_pid" 2>/dev/null || true
+  [ -n "$openbox_pid" ] && kill "$openbox_pid" 2>/dev/null || true
+  [ -n "$chromium_pid" ] && wait "$chromium_pid" 2>/dev/null || true
+  [ -n "$openbox_pid" ] && wait "$openbox_pid" 2>/dev/null || true
+}
+trap cleanup EXIT
+trap 'exit 143' INT TERM HUP
+
+if command -v chromium >/dev/null 2>&1; then
+  CHROMIUM="$(command -v chromium)"
+elif command -v chromium-browser >/dev/null 2>&1; then
+  CHROMIUM="$(command -v chromium-browser)"
+else
+  echo "Chromium executable was not found." >&2
+  exit 69
+fi
+
+openbox --sm-disable &
+openbox_pid=$!
+
+ready=0
+attempt=0
+while [ "$attempt" -lt 50 ]; do
+  if ! kill -0 "$openbox_pid" 2>/dev/null; then
+    echo "Openbox exited during startup." >&2
+    exit 70
+  fi
+  if xprop -root _NET_SUPPORTING_WM_CHECK >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
+  attempt=$((attempt + 1))
+  sleep 0.1
+done
+
+if [ "$ready" -ne 1 ]; then
+  echo "Openbox did not become ready in time." >&2
+  exit 70
+fi
+
+xset -dpms
+xset s off
+xset s noblank
+
+"${CHROMIUM}" \
+  --kiosk \
+  --app=http://127.0.0.1:8080/ \
+  --no-first-run \
+  --disable-session-crashed-bubble \
+  --disable-features=Translate \
+  --password-store=basic \
+  --enable-gpu-rasterization \
+  --ozone-platform=x11 &
+chromium_pid=$!
+
+(
+  while kill -0 "$chromium_pid" 2>/dev/null; do
+    if ! kill -0 "$openbox_pid" 2>/dev/null; then
+      echo "Openbox exited; stopping Chromium." >&2
+      kill "$chromium_pid" 2>/dev/null || true
+      exit 70
+    fi
+    sleep 1
+  done
+) &
+watchdog_pid=$!
+
+if wait "$chromium_pid"; then
+  chromium_status=0
+else
+  chromium_status=$?
+fi
+chromium_pid=""
+
+kill "$watchdog_pid" 2>/dev/null || true
+wait "$watchdog_pid" 2>/dev/null || true
+watchdog_pid=""
+
+exit "$chromium_status"

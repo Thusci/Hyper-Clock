@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "连接 Q775 传感器守护进程",
+        "description": "Home Assistant 必须能够访问该守护进程。",
+        "data": {"base_url": "守护进程地址", "token": "访问令牌"}
+      }
+    },
+    "error": {"cannot_connect": "无法连接或鉴权失败"},
+    "abort": {"already_configured": "该守护进程已经配置"}
+  }
+}
+

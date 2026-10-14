@@ -1,0 +1,37 @@
+[Unit]
+Description=Q775 sidecar: telemetry, screen control, sleep/wake and camera bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/q775-sensor-daemon
+ExecStart=/opt/q775-sensor-daemon/.venv/bin/q775-daemon --config /etc/q775-daemon/config.toml
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+
+# Root is needed for: backlight and RTC writes in /sys, passive reads of /dev/input (button wake),
+# SMART and V4L2. /sys stays writable because ProtectKernelTunables is deliberately not set.
+# `systemctl suspend` talks to logind over D-Bus (AF_UNIX); `iw` arms Wake-on-WLAN (AF_NETLINK).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+# CAP_SYS_ADMIN: SMART ioctls · CAP_NET_ADMIN: Wake-on-WLAN · CAP_WAKE_ALARM: RTC wake.
+# (CAP_SYS_RAWIO was only needed by PowerTOP, now off by default; add it back if you enable it.)
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_SYS_ADMIN CAP_NET_ADMIN CAP_WAKE_ALARM
+AmbientCapabilities=CAP_DAC_READ_SEARCH CAP_SYS_ADMIN CAP_NET_ADMIN CAP_WAKE_ALARM
+
+[Install]
+WantedBy=multi-user.target
+

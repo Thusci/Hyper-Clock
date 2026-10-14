@@ -1,0 +1,5 @@
+node_modules/
+.next/
+.env
+data/runtime-*.json
+data/audit.ndjson

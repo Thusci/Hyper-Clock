@@ -1,0 +1,1 @@
+import { LogView } from "@/components/log-view";import { readAudit } from "@/server/store";export const dynamic="force-dynamic";export default async function Page(){return <LogView initial={await readAudit(500)}/>}

@@ -1,0 +1,14 @@
+I: Bus=0019
+N: Name="Intel HID events"
+H: Handlers=kbd event5
+B: EV=13
+
+I: Bus=0018
+N: Name="Wacom touchscreen"
+H: Handlers=mouse0 event7
+B: EV=b
+
+I: Bus=0011
+N: Name="AT Translated Set 2 keyboard"
+H: Handlers=sysrq kbd event3 leds
+B: EV=120013

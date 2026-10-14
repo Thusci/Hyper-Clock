@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: q775-sensor-daemon
+Version: 0.2.0
+Summary: Q775 sidecar: curated telemetry, screen control, sleep/wake and camera bridge for Home Assistant
+Requires-Python: >=3.12
+Requires-Dist: aiohttp==3.14.3
+Requires-Dist: psutil==7.2.2
+Provides-Extra: udev
+Requires-Dist: pyudev==0.24.4; sys_platform == "linux" and extra == "udev"
+Provides-Extra: dev
+Requires-Dist: pytest==8.4.2; extra == "dev"
+Requires-Dist: pytest-asyncio==1.2.0; extra == "dev"
+Requires-Dist: ruff==0.13.2; extra == "dev"
